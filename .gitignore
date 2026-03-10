@@ -1,0 +1,19 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.doccache
+*.suo
+
+# C++ / MSYS2
+*.o
+*.dll
+*.exe
+*.lib
+*.a
+*.log
+
+# VS Code
+.vscode/
+.history/

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CORE/CORE.csproj" />
+  <Project Path="SAMPLES/SAMPLES.csproj" />
+</Solution>
