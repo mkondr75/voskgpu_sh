@@ -17,3 +17,5 @@
 # VS Code
 .vscode/
 .history/
+CPP/build/
+CPP/hystor/

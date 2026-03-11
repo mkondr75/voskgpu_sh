@@ -10,7 +10,8 @@ using System.Runtime.InteropServices;
 
 namespace UCRTForge.Vosk.Core
 {
-    internal static class NativeMethods
+    //internal static class NativeMethods
+    public static class NativeMethods
     {
         private const string LibName = "voskgpu.dll";
 
