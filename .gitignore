@@ -18,4 +18,5 @@
 .vscode/
 .history/
 CPP/build/
-CPP/hystor/
+CPP/hystor/**/libvosk.dll
+**/vosk_gpu_debug.log
