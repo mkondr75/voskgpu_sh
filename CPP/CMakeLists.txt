@@ -1,32 +1,32 @@
 cmake_minimum_required(VERSION 3.18)
 project(VoskGpuProject LANGUAGES CXX)
 
-# 1. Определяем базовый путь к вашему кастомному SDK
 set(MY_CUDA_SDK "C:/dev/cuda_sdk")
+set(VOSK_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
+set(TEST_RUN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../test_run")
 
-# 2. Собираем все пути к инклудам
-# ДОБАВЛЕНО: путь к заголовкам nvcc, где лежит crt/host_config.h
 set(CUDA_INCLUDE_DIRS
     "${MY_CUDA_SDK}/cuda_cudart/cudart/include"
     "${MY_CUDA_SDK}/cuda_cccl/include"
-    "${MY_CUDA_SDK}/cuda_nvcc/nvcc/include" # <-- Вот здесь живет crt/
+    "${MY_CUDA_SDK}/cuda_nvcc/nvcc/include"
 )
 
-# 3. Собираем библиотеку
 add_library(voskgpu SHARED vosk_api.cpp)
-
-# 4. Подключаем инклуды как SYSTEM
+target_include_directories(voskgpu PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(voskgpu SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+target_link_directories(voskgpu PRIVATE "${MY_CUDA_SDK}/lib/x64" "${VOSK_LIB_DIR}")
 
-# 5. Настройка линкера
-target_link_directories(voskgpu PRIVATE "${MY_CUDA_SDK}/lib/x64")
+target_link_libraries(voskgpu PRIVATE 
+    "${MY_CUDA_SDK}/lib/x64/cudart.lib" 
+)
 
-# ИСПРАВЛЕНО: MY_CUDA_PATH заменено на MY_CUDA_SDK
-#target_link_libraries(voskgpu PRIVATE "${MY_CUDA_SDK}/lib/x64/cudart_static.lib")
-target_link_libraries(voskgpu PRIVATE "${MY_CUDA_SDK}/lib/x64/cudart.lib")
-
-# 6. Настройка имен для Windows
 set_target_properties(voskgpu PROPERTIES PREFIX "" IMPORT_PREFIX "")
-
-# Добавим макрос, чтобы код знал, что мы пробуем CUDA
 target_compile_definitions(voskgpu PRIVATE USE_CUDA)
+
+# Автоматический деплой в папку теста
+add_custom_command(TARGET voskgpu POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${TEST_RUN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${VOSK_LIB_DIR}/libvosk.dll" "${TEST_RUN_DIR}/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:voskgpu>" "${TEST_RUN_DIR}/"
+    COMMENT "Deploying binaries to test_run folder..."
+)

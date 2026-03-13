@@ -20,3 +20,7 @@
 CPP/build/
 CPP/hystor/**/libvosk.dll
 **/vosk_gpu_debug.log
+test_run/
+*.zip
+*.tar.gz
+SHARP/SAMPLES/deploy/
