@@ -1,10 +1,10 @@
 #include "vosk_api.h"
 #include <windows.h>
+#include <cuda_runtime.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 
-// Типы функций из оригинальной libvosk
 typedef void* (*PFN_VOSK_MODEL_NEW)(const char*);
 typedef void (*PFN_VOSK_MODEL_FREE)(void*);
 typedef void* (*PFN_VOSK_RECOGNIZER_NEW)(void*, float);
@@ -15,7 +15,6 @@ typedef void (*PFN_VOSK_RECOGNIZER_FREE)(void*);
 static HMODULE hBaseVosk = NULL;
 static std::string global_log_path = "vosk_gpu_debug.log";
 
-// Хелпер для получения функций из libvosk.dll
 void* GetVoskFunc(const char* name) {
     if (!hBaseVosk) {
         hBaseVosk = GetModuleHandleA("libvosk.dll");
@@ -25,17 +24,29 @@ void* GetVoskFunc(const char* name) {
 }
 
 VOSK_API int vosk_gpu_check_availability() {
-#ifdef USE_CUDA
-    return 1; 
-#else
-    return 0;
-#endif
+    int runtimeVersion = 0;
+    int driverVersion = 0;
+    cudaRuntimeGetVersion(&runtimeVersion);
+    cudaDriverGetVersion(&driverVersion);
+
+    std::ofstream log(global_log_path, std::ios::app);
+    log << "[NATIVE] CUDA Runtime Version: " << runtimeVersion << std::endl;
+    log << "[NATIVE] CUDA Driver Version: " << driverVersion << std::endl;
+
+    int deviceCount = 0;
+    cudaError_t error = cudaGetDeviceCount(&deviceCount);
+    
+    if (error != cudaSuccess) {
+        log << "[NATIVE] CUDA Error: " << cudaGetErrorString(error) << std::endl;
+        return -1;
+    }
+    return deviceCount;
 }
 
 VOSK_API void vosk_gpu_init_logger(const char* log_path) {
     if (log_path) global_log_path = log_path;
     std::ofstream log(global_log_path, std::ios::app);
-    log << "[INFO] Logger initialized inside voskgpu.dll" << std::endl;
+    log << "=== INITIALIZING UCRT-FORGE LOGGER ===" << std::endl;
 }
 
 VOSK_API void* vosk_model_new(const char* model_path) {
