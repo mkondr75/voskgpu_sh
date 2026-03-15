@@ -1,0 +1,15 @@
+diff --git a/.gitignore b/.gitignore
+index 512cef0..10ae90b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -18,4 +18,5 @@
+ .vscode/
+ .history/
+ CPP/build/
+-CPP/hystor/
+\ No newline at end of file
++CPP/hystor/**/libvosk.dll
++**/vosk_gpu_debug.log
+diff --git a/PY/.gitkeep b/PY/.gitkeep
+new file mode 100644
+index 0000000..e69de29
