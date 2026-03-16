@@ -24,3 +24,6 @@ test_run/
 *.zip
 *.tar.gz
 SHARP/SAMPLES/deploy/
+test_data/
+**/*.html
+CPP/hystor/3/build/

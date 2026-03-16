@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <ctime>
 
 typedef void* (*PFN_VOSK_MODEL_NEW)(const char*);
 typedef void (*PFN_VOSK_MODEL_FREE)(void*);
@@ -28,9 +29,15 @@ VOSK_API int vosk_gpu_check_availability() {
     int driverVersion = 0;
     cudaRuntimeGetVersion(&runtimeVersion);
     cudaDriverGetVersion(&driverVersion);
+    std::time_t now = std::time(0); // Get current time
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *std::localtime(&now); // Convert to local time structure
+    // Use strftime to format the time
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct); // %X is the locale's time representation
 
     std::ofstream log(global_log_path, std::ios::app);
-    log << "[NATIVE] CUDA Runtime Version: " << runtimeVersion << std::endl;
+    log << "[NATIVE] CUDA Runtime Version: " << runtimeVersion << buf << std::endl;
     log << "[NATIVE] CUDA Driver Version: " << driverVersion << std::endl;
 
     int deviceCount = 0;
