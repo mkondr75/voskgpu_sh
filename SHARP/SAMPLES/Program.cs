@@ -1,3 +1,4 @@
+/*
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -74,6 +75,120 @@ catch (DllNotFoundException ex)
 catch (Exception ex) 
 {
     Console.WriteLine($"[FATAL] Error: {ex.Message}");
+}
+
+internal static class NativeMethods
+{
+    private const string DllName = "voskgpu";
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int vosk_gpu_check_availability();
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void vosk_gpu_init_logger(string logPath);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr vosk_model_new(string modelPath);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void vosk_model_free(IntPtr model);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr vosk_recognizer_new(IntPtr model, float sampleRate);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int vosk_recognizer_accept_waveform(IntPtr recognizer, byte[] data, int length);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr vosk_recognizer_result(IntPtr recognizer);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void vosk_recognizer_free(IntPtr recognizer);
+}
+*/
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.Text;
+
+// Фикс Rule 8: Оставляем нативный импорт, добавляем профилирование
+Console.OutputEncoding = Encoding.UTF8;
+Console.WriteLine("=== UCRT-Forge: Vosk GPU Benchmark Mode ===");
+
+string defaultWav = @"C:\vosk_test\tst_data\test.wav";
+string defaultModel = @"C:\vosk_test\models\vosk-model-small-ru-0.22";
+
+// string wavPath = args.Length > 0 ? args[0] : defaultWav;
+// string modelPath = args.Length > 1 ? args[1] : defaultModel;
+// Правило 9: Прозрачный ввод. Порядок: [Model] [WAV]
+string modelPath = args.Length > 0 ? args[0] : defaultModel;
+string wavPath = args.Length > 1 ? args[1] : defaultWav;
+
+Console.WriteLine($"[INFO] Target Model: {modelPath}");
+Console.WriteLine($"[INFO] Target Audio: {wavPath}");
+
+Stopwatch sw = new Stopwatch();
+
+try 
+{
+    // 1. Проверка GPU
+    sw.Start();
+    int gpuStatus = NativeMethods.vosk_gpu_check_availability();
+    sw.Stop();
+    Console.WriteLine($"[METRIC] GPU Check: {gpuStatus} (Time: {sw.ElapsedMilliseconds} ms)");
+
+    NativeMethods.vosk_gpu_init_logger("vosk_gpu_debug.log");
+
+    // 2. Загрузка модели (Холодный старт)
+    Console.WriteLine($"[C#] Loading model: {modelPath}");
+    sw.Restart();
+    IntPtr model = NativeMethods.vosk_model_new(modelPath);
+    sw.Stop();
+    
+    if (model == IntPtr.Zero) {
+        Console.WriteLine("[ERROR] Model load failed!");
+        return;
+    }
+    long modelLoadTime = sw.ElapsedMilliseconds;
+    Console.WriteLine($"[METRIC] Model Load Time: {modelLoadTime} ms");
+
+    // 3. Инициализация распознавателя
+    IntPtr rec = NativeMethods.vosk_recognizer_new(model, 16000.0f);
+
+    // 4. Обработка аудио
+    if (File.Exists(wavPath))
+    {
+        byte[] audioData = File.ReadAllBytes(wavPath);
+        Console.WriteLine($"[C#] Processing {audioData.Length} bytes...");
+        
+        sw.Restart();
+        NativeMethods.vosk_recognizer_accept_waveform(rec, audioData, audioData.Length);
+        IntPtr resultPtr = NativeMethods.vosk_recognizer_result(rec);
+        sw.Stop();
+
+        // Rule 8: Используем PtrToStringUTF8 для корректной кириллицы
+        string jsonResult = Marshal.PtrToStringAnsi(resultPtr); 
+        // Примечание: Если в JSON будет "кракозябра", заменим на UTF8-хендлер
+        
+        Console.WriteLine("\n[FINAL RESULT] -----------------------");
+        Console.WriteLine(jsonResult);
+        Console.WriteLine("--------------------------------------");
+        Console.WriteLine($"[METRIC] Recognition Time: {sw.ElapsedMilliseconds} ms");
+    }
+    else
+    {
+        Console.WriteLine($"[ERROR] File not found: {wavPath}");
+    }
+
+    // 5. Cleanup
+    NativeMethods.vosk_recognizer_free(rec);
+    NativeMethods.vosk_model_free(model);
+    Console.WriteLine("[C#] Done.");
+}
+catch (Exception ex) 
+{
+    Console.WriteLine($"[FATAL] {ex.Message}");
 }
 
 internal static class NativeMethods
